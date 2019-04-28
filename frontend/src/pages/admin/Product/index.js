@@ -106,12 +106,14 @@ class Product extends Component {
     }
 
     const { formData: { variants } } = this.state;
+    //parseint ngerubah string ke integer, jika parseintvalue10 itu false, maka jalankan 0(kalo ketik huruf jadi 0)
     variants[index].price = parseInt(value, 10) || 0;
 
     this.setVariantData(variants);
   };
 
   onDiscountChange = index => ({ target: { value } }) => {
+    //isnan = is not a number, jadi kalo bukan angka yang ditulis, maka ga terjadi apa2
     if (isNaN(value)) {
       return;
     }
