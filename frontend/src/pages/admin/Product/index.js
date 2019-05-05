@@ -1,5 +1,10 @@
 import React, { Component, Fragment } from 'react';
 import ProductForm from './ProductForm';
+import ProductView from './ProductView'
+import slugify from 'slugify';
+import uniqid from 'uniqid';
+import path from 'path'
+import axios from 'axios'
 
 class Product extends Component {
   constructor() {
@@ -9,8 +14,24 @@ class Product extends Component {
         id: '',
         name: '',
         variants: [],
-      }
+      },
+      formImages: {},
+      hasVariant: null,
+      products: null,
     };
+  }
+
+
+  getProducts = () => {
+    axios.get('http://localhost:8000/api/products')
+      .then(res => {
+        this.setState({ products: res.data })
+      })
+  }
+
+  setHasVariant = hasVariant => {
+    this.setState({ hasVariant });
+
   }
 
   onNameChange = event => {
@@ -106,14 +127,12 @@ class Product extends Component {
     }
 
     const { formData: { variants } } = this.state;
-    //parseint ngerubah string ke integer, jika parseintvalue10 itu false, maka jalankan 0(kalo ketik huruf jadi 0)
     variants[index].price = parseInt(value, 10) || 0;
 
     this.setVariantData(variants);
   };
 
   onDiscountChange = index => ({ target: { value } }) => {
-    //isnan = is not a number, jadi kalo bukan angka yang ditulis, maka ga terjadi apa2
     if (isNaN(value)) {
       return;
     }
@@ -126,21 +145,63 @@ class Product extends Component {
 
   onImagesChange = index => ({ target: files }) => {
     const { formData: { variants } } = this.state;
-    variants[index].images = files;
 
+    const images = files.files;
+    const imageNames = [];
+    const formImages = {};
+    for (let i = 0; i < images.length; i++) {
+      const fileNameWithoutExt = path.basename(images[i].name, path.extname(images[i].name));
+      const imageName = `${uniqid(`${slugify(fileNameWithoutExt.toLowerCase())}-`)}${path.extname(images[i].name)}`;
+      imageNames.push(imageName);
+      formImages[imageName] = images[i];
+    }
+    variants[index].images = imageNames;
     this.setVariantData(variants);
+    this.setState(state => ({
+      formImages: {
+        ...state.formImages,
+        ...formImages,
+      }
+    }))
   };
 
-  render() {
+  resetForm = () => {
+    this.setState({
+      formData: {
+        id: '',
+        name: '',
+        variants: [],
+      },
+      formImages: {},
+    });
+  };
+
+  editForm = ({
+    _id,
+    name,
+    variants
+  }) => {
     const { formData } = this.state;
-console.log(this.state.formData)
+    formData.id = _id;
+    formData.name = name;
+    formData.variants = JSON.parse(JSON.stringify(variants));
+    this.setState({ formData, formImages: {} });
+  }
+
+  render() {
+    const { formData, formImages, hasVariant, products } = this.state;
+
     return (
       <Fragment>
         <ProductForm
           data={formData}
+          images={formImages}
           onNameChange={this.onNameChange}
+          hasVariant={hasVariant}
+          setHasVariant={this.setHasVariant}
           addVariant={this.addVariant}
           deleteVariant={this.deleteVariant}
+          resetForm={this.resetForm}
           onVariantNameChange={this.onVariantNameChange}
           onWeightChange={this.onWeightChange}
           onQuantityChange={this.onQuantityChange}
@@ -148,6 +209,13 @@ console.log(this.state.formData)
           onDiscountChange={this.onDiscountChange}
           onDescriptionChange={this.onDescriptionChange}
           onImagesChange={this.onImagesChange}
+          getProducts={this.getProducts}
+        />
+        <ProductView
+          data = {products}
+          editForm={this.editForm}
+          setHasVariant={this.setHasVariant}
+          getProducts={this.getProducts}
         />
       </Fragment>
     );
