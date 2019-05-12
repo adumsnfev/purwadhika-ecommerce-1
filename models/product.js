@@ -7,7 +7,7 @@ const productSchema = new Schema({
   rating: { type: Number, default: 0 },
   timestamp: { type: Date, default: new Date() },
   variants: [{
-    name: String,
+    name: {type: String, default:"-"},
     images: [String],
     description: { type: String, required: true },
     weight: { type: Number, required: true },
